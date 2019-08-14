@@ -6,7 +6,11 @@ import android.widget.Scroller
 import android.widget.TextView
 import java.util.concurrent.TimeUnit
 
-class MarqueeAnimation(val textView: TextView) {
+class MarqueeAnimation(
+    private val textView: TextView,
+    private val delayMilliseconds: Long,
+    private val durationMilliseconds: Int
+) {
     private val scroller: Scroller = Scroller(textView.context, LinearInterpolator())
 
     init {
@@ -24,7 +28,10 @@ class MarqueeAnimation(val textView: TextView) {
 
     fun startAnimation() {
         with(textView) {
-            post {
+            scroller.startScroll(0, 0, 0, 0, 0)
+            invalidate()
+
+            postDelayed({
                 val tvWidth = width
                 val totalWidthPadding = paddingStart + paddingEnd
                 val moreSpacing = 2.toDp
@@ -33,10 +40,20 @@ class MarqueeAnimation(val textView: TextView) {
                     0,
                     (textWidth + moreSpacing) - (tvWidth - totalWidthPadding),
                     0,
-                    TimeUnit.SECONDS.toMillis(2).toInt()
+                    durationMilliseconds
                 )
                 invalidate()
-            }
+            }, delayMilliseconds)
         }
     }
+}
+
+fun TextView.startMarqueeAnimation(
+    delayMilliseconds: Long = 0L,
+    durationMilliseconds: Int = TimeUnit.SECONDS.toMillis(1).toInt()
+) {
+    MarqueeAnimation(this, delayMilliseconds, durationMilliseconds)
+        .also {
+            it.startAnimation()
+        }
 }
