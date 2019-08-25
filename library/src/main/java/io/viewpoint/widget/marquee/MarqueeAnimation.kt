@@ -1,15 +1,13 @@
 package io.viewpoint.widget.marquee
 
-import android.content.Context
 import android.graphics.Rect
 import android.util.LayoutDirection
 import android.util.Log
-import android.view.animation.Interpolator
-import android.view.animation.LinearInterpolator
-import android.widget.Scroller
 import android.widget.TextView
 import io.reactivex.Completable
-import io.reactivex.subjects.CompletableSubject
+import io.viewpoint.widget.marquee.scroller.CompletableMarqueeScroller
+import io.viewpoint.widget.marquee.scroller.DefaultMarqueeScroller
+import io.viewpoint.widget.marquee.scroller.MarqueeScroller
 import java.util.concurrent.TimeUnit
 
 fun log(msg: String) {
@@ -19,30 +17,11 @@ fun log(msg: String) {
 class MarqueeAnimation(
     private val textView: TextView,
     private val delayMilliseconds: Long,
-    private val durationMilliseconds: Int
+    private val durationMilliseconds: Int,
+    private val marqueeScroller: MarqueeScroller
 ) {
-    private class CompletableScroller(
-        context: Context,
-        interpolator: Interpolator
-    ) : Scroller(context, interpolator) {
-        private val completeSignal = CompletableSubject.create()
-
-        override fun computeScrollOffset(): Boolean {
-            val result = super.computeScrollOffset()
-            log("computeScrollOffset : $isFinished, result : $result")
-            if (isFinished && duration > 0) {
-                completeSignal.onComplete()
-            }
-            return result
-        }
-
-        fun toCompletable(): Completable = completeSignal.hide()
-    }
-
-    private val scroller = CompletableScroller(textView.context, LinearInterpolator())
-
     init {
-        textView.setScroller(scroller)
+        textView.setScroller(marqueeScroller)
     }
 
     private val textWidth: Int
@@ -67,16 +46,16 @@ class MarqueeAnimation(
                 0
         }
 
-    fun startAnimation(): Completable {
+    fun startAnimation() {
         log("startAnimation")
         with(textView) {
-            scroller.startScroll(startX, 0, 0, 0, 0)
+            marqueeScroller.startScroll(startX, 0, 0, 0, 0)
             invalidate()
 
             postDelayed({
                 val direction = textView.layout.getParagraphDirection(0)
 
-                scroller.startScroll(
+                marqueeScroller.startScroll(
                     startX,
                     0,
                     (textWidth - textViewWidthWithPadding) * direction,
@@ -86,15 +65,34 @@ class MarqueeAnimation(
                 invalidate()
             }, delayMilliseconds)
         }
-
-        return scroller.toCompletable()
     }
 }
 
-fun TextView.startMarqueeAnimation(
+fun TextView.awaitStartMarqueeAnimation(
     delayMilliseconds: Long = 0L,
     durationMilliseconds: Int = TimeUnit.SECONDS.toMillis(1).toInt()
 ): Completable {
-    return MarqueeAnimation(this, delayMilliseconds, durationMilliseconds)
-        .startAnimation()
+    val scroller = CompletableMarqueeScroller(context)
+    return scroller.toCompletable().also {
+        MarqueeAnimation(
+            this,
+            delayMilliseconds,
+            durationMilliseconds,
+            scroller
+        ).startAnimation()
+    }
+}
+
+fun TextView.startMarqueeAnimationAsync(
+    delayMilliseconds: Long = 0L,
+    durationMilliseconds: Int = TimeUnit.SECONDS.toMillis(1).toInt(),
+    onComplete: (() -> Unit)
+) {
+    val scroller = DefaultMarqueeScroller(context, onComplete)
+    MarqueeAnimation(
+        this,
+        delayMilliseconds,
+        durationMilliseconds,
+        scroller
+    ).startAnimation()
 }
