@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">MarqueeEndTextView</string>
+    <string name="marquee_text">Notice : MarqueeTextView v1.0.0 release!!</string>
 </resources>

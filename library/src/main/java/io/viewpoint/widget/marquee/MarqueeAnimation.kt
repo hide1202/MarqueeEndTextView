@@ -2,6 +2,7 @@ package io.viewpoint.widget.marquee
 
 import android.content.Context
 import android.graphics.Rect
+import android.util.LayoutDirection
 import android.util.Log
 import android.view.animation.Interpolator
 import android.view.animation.LinearInterpolator
@@ -53,20 +54,32 @@ class MarqueeAnimation(
             return bounds.width()
         }
 
+    private val textViewWidthWithPadding
+        get() = (textView.width - (textView.paddingStart + textView.paddingEnd))
+
+    private val startX: Int
+        get() {
+            val isRtl = textView.layoutDirection == LayoutDirection.RTL
+            val lineRight = textView.layout.getLineRight(0).toInt()
+            return if (isRtl)
+                lineRight - textViewWidthWithPadding
+            else
+                0
+        }
+
     fun startAnimation(): Completable {
         log("startAnimation")
         with(textView) {
-            scroller.startScroll(0, 0, 0, 0, 0)
+            scroller.startScroll(startX, 0, 0, 0, 0)
             invalidate()
 
             postDelayed({
-                val tvWidth = width
-                val totalWidthPadding = paddingStart + paddingEnd
-                val moreSpacing = 2.toDp
+                val direction = textView.layout.getParagraphDirection(0)
+
                 scroller.startScroll(
+                    startX,
                     0,
-                    0,
-                    (textWidth + moreSpacing) - (tvWidth - totalWidthPadding),
+                    (textWidth - textViewWidthWithPadding) * direction,
                     0,
                     durationMilliseconds
                 )

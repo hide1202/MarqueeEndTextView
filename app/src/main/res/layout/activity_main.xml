@@ -16,7 +16,7 @@
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
         android:singleLine="true"
-        android:text="Notice : MarqueeTextView v1.0.0 release!!"
+        android:text="@string/marquee_text"
         android:textColor="@color/white"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
