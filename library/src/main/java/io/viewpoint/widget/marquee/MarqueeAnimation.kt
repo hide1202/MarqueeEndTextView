@@ -6,8 +6,10 @@ import android.util.Log
 import android.widget.TextView
 import io.reactivex.Completable
 import io.viewpoint.widget.marquee.scroller.CompletableMarqueeScroller
+import io.viewpoint.widget.marquee.scroller.CoroutineMarqueeScroller
 import io.viewpoint.widget.marquee.scroller.DefaultMarqueeScroller
 import io.viewpoint.widget.marquee.scroller.MarqueeScroller
+import kotlinx.coroutines.Deferred
 import java.util.concurrent.TimeUnit
 
 fun log(msg: String) {
@@ -17,7 +19,7 @@ fun log(msg: String) {
 class MarqueeAnimation(
     private val textView: TextView,
     private val delayMilliseconds: Long,
-    private val durationMilliseconds: Int,
+    private val durationMilliseconds: Long,
     private val marqueeScroller: MarqueeScroller
 ) {
     init {
@@ -60,7 +62,7 @@ class MarqueeAnimation(
                     0,
                     (textWidth - textViewWidthWithPadding) * direction,
                     0,
-                    durationMilliseconds
+                    durationMilliseconds.toInt()
                 )
                 invalidate()
             }, delayMilliseconds)
@@ -68,9 +70,9 @@ class MarqueeAnimation(
     }
 }
 
-fun TextView.awaitStartMarqueeAnimation(
+fun TextView.observeMarqueeAnimation(
     delayMilliseconds: Long = 0L,
-    durationMilliseconds: Int = TimeUnit.SECONDS.toMillis(1).toInt()
+    durationMilliseconds: Long = TimeUnit.SECONDS.toMillis(1)
 ): Completable {
     val scroller = CompletableMarqueeScroller(context)
     return scroller.toCompletable().also {
@@ -85,7 +87,7 @@ fun TextView.awaitStartMarqueeAnimation(
 
 fun TextView.startMarqueeAnimationAsync(
     delayMilliseconds: Long = 0L,
-    durationMilliseconds: Int = TimeUnit.SECONDS.toMillis(1).toInt(),
+    durationMilliseconds: Long = TimeUnit.SECONDS.toMillis(1),
     onComplete: (() -> Unit)
 ) {
     val scroller = DefaultMarqueeScroller(context, onComplete)
@@ -95,4 +97,18 @@ fun TextView.startMarqueeAnimationAsync(
         durationMilliseconds,
         scroller
     ).startAnimation()
+}
+
+fun TextView.awaitMarqueeAnimation(
+    delayMilliseconds: Long = 0L,
+    durationMilliseconds: Long = TimeUnit.SECONDS.toMillis(1)
+): Deferred<Unit> {
+    val scroller = CoroutineMarqueeScroller(context)
+    MarqueeAnimation(
+        this,
+        delayMilliseconds,
+        durationMilliseconds,
+        scroller
+    ).startAnimation()
+    return scroller.await()
 }
